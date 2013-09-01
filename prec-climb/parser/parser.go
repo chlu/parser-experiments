@@ -13,163 +13,10 @@ package parser
 
 import (
 	"fmt"
+	"github.com/chlu/parser-experiments/ast"
 	"github.com/chlu/parser-experiments/tokenizer"
-	"strconv"
 	"strings"
 )
-
-// ----
-
-type node interface {
-	String() string
-}
-
-type nodeIdent string
-type nodeNumber int
-type nodeBinaryOp struct {
-	op  operator
-	lft node
-	rgt node
-}
-
-func mkIdent(tok tokenizer.Token) *nodeIdent {
-	i := nodeIdent(tok.String)
-	return &i
-}
-
-func mkNumber(tok tokenizer.Token) *nodeNumber {
-	i, err := strconv.ParseInt(tok.String, 0, 0)
-	if err != nil {
-		panic("Could not convert string to number")
-	}
-	n := nodeNumber(i)
-	return &n
-}
-
-func mkNode(op operator, lft, rgt node) *nodeBinaryOp {
-	return &nodeBinaryOp{op, lft, rgt}
-}
-
-func (n *nodeIdent) String() string {
-	return string(*n)
-}
-
-func (n *nodeNumber) String() string {
-	return strconv.Itoa(int(*n))
-}
-
-func (n *nodeBinaryOp) String() string {
-	if n.rgt != nil {
-		return fmt.Sprintf("%v(%v,%v)", n.op.String(), n.lft.String(), n.rgt.String())
-	} else {
-		return fmt.Sprintf("%v(%v)", n.op.String(), n.lft.String())
-	}
-}
-
-type operator uint8
-
-const (
-	opOr operator = iota
-	opAnd
-	opEquals
-	opBinPlus
-	opBinMinus
-	opUnaMinus
-	opBinMult
-	opBinDiv
-	opBinExp
-)
-
-type associativity uint8
-
-const (
-	assocLeft associativity = iota
-	assocRight
-)
-
-func toBinaryOp(tok tokenizer.Token) operator {
-	switch tok.String {
-	case "+":
-		return opBinPlus
-	case "-":
-		return opBinMinus
-	case "*":
-		return opBinMult
-	case "/":
-		return opBinDiv
-	case "^":
-		return opBinExp
-	case "=":
-		return opEquals
-	default:
-		panic(fmt.Sprintf("Unknown binary op token %s", tok))
-	}
-}
-
-func isUnary(tok tokenizer.Token) bool {
-	return tok.String == "-"
-}
-
-func toUnaryOp(tok tokenizer.Token) operator {
-	switch tok.String {
-	case "-":
-		return opUnaMinus
-	default:
-		panic(fmt.Sprintf("Unknown binary op token %s", tok))
-	}
-}
-
-func (op operator) String() string {
-	switch op {
-	case opBinPlus:
-		return "+"
-	case opBinMinus:
-		return "-"
-	case opBinMult:
-		return "*"
-	case opBinDiv:
-		return "/"
-	case opBinExp:
-		return "^"
-	case opUnaMinus:
-		return "-"
-	case opEquals:
-		return "="
-	}
-	panic(fmt.Sprintf("Unknown operator %v", op))
-}
-
-func (op operator) prec() int {
-	switch op {
-	case opOr:
-		return 0
-	case opAnd:
-		return 1
-	case opEquals:
-		return 2
-	case opBinPlus, opBinMinus:
-		return 3
-	case opUnaMinus:
-		return 4
-	case opBinMult, opBinDiv:
-		return 5
-	case opBinExp:
-		return 6
-	default:
-		panic("Undefined prec")
-	}
-}
-
-func (op operator) associativity() associativity {
-	switch op {
-	case opBinExp:
-		return assocRight
-	default:
-		return assocLeft
-	}
-}
-
-// ----
 
 type Parser struct {
 	tz    *tokenizer.Tokenizer
@@ -181,7 +28,7 @@ func NewParser() *Parser {
 	return p
 }
 
-func (p *Parser) Parse(exp string) (node, error) {
+func (p *Parser) Parse(exp string) (ast.Node, error) {
 	p.tz = tokenizer.NewTokenizer(exp)
 
 	t, err := p.parse_Exp(0, 0)
@@ -195,7 +42,7 @@ func (p *Parser) Parse(exp string) (node, error) {
 	return t, nil
 }
 
-func (p *Parser) parse_Exp(pp, lvl int) (node, error) {
+func (p *Parser) parse_Exp(pp, lvl int) (ast.Node, error) {
 	if p.Debug {
 		fmt.Printf("%sparse_Exp(%d)\n", strings.Repeat("  ", lvl), pp)
 	}
@@ -204,16 +51,16 @@ func (p *Parser) parse_Exp(pp, lvl int) (node, error) {
 		return nil, err
 	}
 	for {
-		if n := p.tz.Next(); n.TokenType == tokenizer.TypeBinaryOp && toBinaryOp(n).prec() >= pp {
+		if n := p.tz.Next(); n.TokenType == tokenizer.TypeBinaryOp && ast.ToBinaryOp(n).Prec() >= pp {
 			var q int
-			op := toBinaryOp(n)
+			op := ast.ToBinaryOp(n)
 			p.tz.Consume()
 
-			switch op.associativity() {
-			case assocRight:
-				q = op.prec()
-			case assocLeft:
-				q = 1 + op.prec()
+			switch op.Associativity() {
+			case ast.AssocRight:
+				q = op.Prec()
+			case ast.AssocLeft:
+				q = 1 + op.Prec()
 			}
 			if p.Debug {
 				fmt.Printf("%s- op %s\n", strings.Repeat("  ", lvl), op.String())
@@ -222,7 +69,7 @@ func (p *Parser) parse_Exp(pp, lvl int) (node, error) {
 			if err != nil {
 				return nil, err
 			}
-			t = mkNode(op, t, t1)
+			t = ast.MakeNode(op, t, t1)
 			if p.Debug {
 				fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t.String())
 			}
@@ -233,17 +80,17 @@ func (p *Parser) parse_Exp(pp, lvl int) (node, error) {
 	return t, nil
 }
 
-func (p *Parser) parse_P(lvl int) (node, error) {
+func (p *Parser) parse_P(lvl int) (ast.Node, error) {
 	n := p.tz.Next()
-	if isUnary(n) {
-		op := toUnaryOp(n)
+	if ast.IsUnary(n) {
+		op := ast.ToUnaryOp(n)
 		p.tz.Consume()
-		q := op.prec()
+		q := op.Prec()
 		t, err := p.parse_Exp(q, lvl+1)
 		if err != nil {
 			return nil, err
 		}
-		t1 := mkNode(op, t, nil)
+		t1 := ast.MakeNode(op, t, nil)
 		if p.Debug {
 			fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t1.String())
 		}
@@ -260,14 +107,14 @@ func (p *Parser) parse_P(lvl int) (node, error) {
 		}
 		return t, nil
 	} else if n.TokenType == tokenizer.TypeIdent {
-		t := mkIdent(n)
+		t := ast.MakeIdent(n)
 		if p.Debug {
 			fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t.String())
 		}
 		p.tz.Consume()
 		return t, nil
 	} else if n.TokenType == tokenizer.TypeNumberLiteral {
-		t := mkNumber(n)
+		t := ast.MakeNumber(n)
 		if p.Debug {
 			fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t.String())
 		}

@@ -112,16 +112,14 @@ func readWhile(reader io.ByteScanner, f func(b byte) bool, reset bool) string {
 		b, err := reader.ReadByte()
 		if err != nil {
 			return s
-		} else {
-			if !f(b) {
-				reader.UnreadByte()
-				return s
-			} else {
-				if reset {
-					defer reader.UnreadByte()
-				}
-				s += string(b)
-			}
 		}
+		if !f(b) {
+			reader.UnreadByte()
+			return s
+		}
+		if reset {
+			defer reader.UnreadByte()
+		}
+		s += string(b)
 	}
 }
