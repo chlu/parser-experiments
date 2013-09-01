@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"github.com/chlu/parser-experiments/tokenizer"
 	"strconv"
+	"strings"
 )
 
 // ----
@@ -58,7 +59,11 @@ func (n *nodeNumber) String() string {
 }
 
 func (n *nodeBinaryOp) String() string {
-	return fmt.Sprintf("%v(%v,%v)", n.op.String(), n.lft.String(), n.rgt.String())
+	if n.rgt != nil {
+		return fmt.Sprintf("%v(%v,%v)", n.op.String(), n.lft.String(), n.rgt.String())
+	} else {
+		return fmt.Sprintf("%v(%v)", n.op.String(), n.lft.String())
+	}
 }
 
 type operator uint8
@@ -94,6 +99,8 @@ func toBinaryOp(tok tokenizer.Token) operator {
 		return opBinDiv
 	case "^":
 		return opBinExp
+	case "=":
+		return opEquals
 	default:
 		panic(fmt.Sprintf("Unknown binary op token %s", tok))
 	}
@@ -126,6 +133,8 @@ func (op operator) String() string {
 		return "^"
 	case opUnaMinus:
 		return "-"
+	case opEquals:
+		return "="
 	}
 	panic(fmt.Sprintf("Unknown operator %v", op))
 }
@@ -163,22 +172,37 @@ func (op operator) associativity() associativity {
 // ----
 
 type Parser struct {
-	tz *tokenizer.Tokenizer
+	tz    *tokenizer.Tokenizer
+	Debug bool
 }
 
-func NewParser(exp string) *Parser {
-	p := &Parser{tz: tokenizer.NewTokenizer(exp)}
+func NewParser() *Parser {
+	p := &Parser{}
 	return p
 }
 
-func (p *Parser) Parse() node {
-	t := p.parse_Exp(0)
-	p.expect(tokenizer.End)
-	return t
+func (p *Parser) Parse(exp string) (node, error) {
+	p.tz = tokenizer.NewTokenizer(exp)
+
+	t, err := p.parse_Exp(0, 0)
+	if err != nil {
+		return nil, err
+	}
+	err = p.expect(tokenizer.End)
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
-func (p *Parser) parse_Exp(pp int) node {
-	t := p.parse_P()
+func (p *Parser) parse_Exp(pp, lvl int) (node, error) {
+	if p.Debug {
+		fmt.Printf("%sparse_Exp(%d)\n", strings.Repeat("  ", lvl), pp)
+	}
+	t, err := p.parse_P(lvl)
+	if err != nil {
+		return nil, err
+	}
 	for {
 		if n := p.tz.Next(); n.TokenType == tokenizer.TypeBinaryOp && toBinaryOp(n).prec() >= pp {
 			var q int
@@ -191,38 +215,66 @@ func (p *Parser) parse_Exp(pp int) node {
 			case assocLeft:
 				q = 1 + op.prec()
 			}
-			t1 := p.parse_Exp(q)
+			if p.Debug {
+				fmt.Printf("%s- op %s\n", strings.Repeat("  ", lvl), op.String())
+			}
+			t1, err := p.parse_Exp(q, lvl+1)
+			if err != nil {
+				return nil, err
+			}
 			t = mkNode(op, t, t1)
+			if p.Debug {
+				fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t.String())
+			}
 		} else {
 			break
 		}
 	}
-	return t
+	return t, nil
 }
 
-func (p *Parser) parse_P() node {
+func (p *Parser) parse_P(lvl int) (node, error) {
 	n := p.tz.Next()
 	if isUnary(n) {
 		op := toUnaryOp(n)
 		p.tz.Consume()
 		q := op.prec()
-		t := p.parse_Exp(q)
-		return mkNode(op, t, nil)
+		t, err := p.parse_Exp(q, lvl+1)
+		if err != nil {
+			return nil, err
+		}
+		t1 := mkNode(op, t, nil)
+		if p.Debug {
+			fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t1.String())
+		}
+		return t1, nil
 	} else if n.String == "(" {
 		p.tz.Consume()
-		t := p.parse_Exp(0)
-		p.expect(tokenizer.ParenClose)
-		return t
+		t, err := p.parse_Exp(0, lvl+1)
+		if err != nil {
+			return nil, err
+		}
+		err = p.expect(tokenizer.ParenClose)
+		if err != nil {
+			return nil, err
+		}
+		return t, nil
 	} else if n.TokenType == tokenizer.TypeIdent {
 		t := mkIdent(n)
+		if p.Debug {
+			fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t.String())
+		}
 		p.tz.Consume()
-		return t
+		return t, nil
 	} else if n.TokenType == tokenizer.TypeNumberLiteral {
 		t := mkNumber(n)
+		if p.Debug {
+			fmt.Printf("%s-> %s\n", strings.Repeat("  ", lvl), t.String())
+		}
 		p.tz.Consume()
-		return t
+		return t, nil
 	} else {
-		panic(fmt.Sprintf("Could not parse token %s", n.String))
+		return nil, fmt.Errorf("Expected one of -, (, <ident> or <number> got %s", n.String)
 	}
 }
 

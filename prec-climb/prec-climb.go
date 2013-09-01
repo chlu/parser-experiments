@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -11,16 +10,22 @@ import (
 var debug = false
 
 func main() {
-	flag.Parse()
+	args := os.Args
 
-	if flag.NArg() != 1 {
+	if len(args) < 2 {
 		fmt.Fprintln(os.Stderr, "No expression given")
 		os.Exit(1)
 	}
 
-	exp := flag.Arg(0)
+	exp := args[1]
 
-	p := parser.NewParser(exp)
+	p := parser.NewParser()
+	p.Debug = true
 
-	fmt.Println(exp, ":", p.Parse())
+	n, err := p.Parse(exp)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing expression: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println(exp, ":", n)
 }

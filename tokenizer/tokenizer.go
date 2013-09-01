@@ -31,17 +31,18 @@ type Tokenizer struct {
 	reader io.ByteScanner
 }
 
+// Create a new Tokenizer for the given expression
 func NewTokenizer(exp string) *Tokenizer {
 	t := &Tokenizer{reader: strings.NewReader(exp)}
 	return t
 }
 
-// ----
-
+// Peek at the next token from expression without changing the position
 func (t *Tokenizer) Next() Token {
 	return t.scanToken(true)
 }
 
+// Consume the next token and change position to next token
 func (t *Tokenizer) Consume() Token {
 	return t.scanToken(false)
 }
@@ -79,8 +80,11 @@ func (t *Tokenizer) scanToken(reset bool) Token {
 		return Token{string(b), TypeBinaryOp}
 	}
 
-	if b == '(' || b == ')' {
-		return Token{string(b), TypeParen}
+	if b == '(' {
+		return ParenOpen
+	}
+	if b == ')' {
+		return ParenClose
 	}
 
 	panic(fmt.Sprintf("Unexpected token '%v'", string(b)))
@@ -97,7 +101,7 @@ func isIdent(b byte) bool {
 }
 
 func isBinaryOp(b byte) bool {
-	return b == '+' || b == '-' || b == '*' || b == '/' || b == '^'
+	return b == '+' || b == '-' || b == '*' || b == '/' || b == '^' || b == '='
 }
 
 // Read from reader while f holds true, unread bytes if reset == true
