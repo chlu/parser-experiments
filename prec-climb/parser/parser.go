@@ -120,9 +120,8 @@ func (p *Parser) parse_P(lvl int) (ast.Node, error) {
 		}
 		p.tz.Consume()
 		return t, nil
-	} else {
-		return nil, fmt.Errorf("Expected one of -, (, <ident> or <number> got %s", n.String)
 	}
+	return nil, fmt.Errorf("Expected one of -, (, <ident> or <number> got %s", n.String)
 }
 
 // ----
@@ -131,7 +130,6 @@ func (p *Parser) expect(tok tokenizer.Token) error {
 	if ntok := p.tz.Next(); ntok == tok {
 		p.tz.Consume()
 		return nil
-	} else {
-		return fmt.Errorf("Expected token %s, but got %s", tok.String, ntok.String)
 	}
+	return fmt.Errorf("Expected token %s, but got %s", tok.String, ntok.String)
 }
