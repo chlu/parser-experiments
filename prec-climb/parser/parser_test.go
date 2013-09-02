@@ -16,16 +16,16 @@ func TestParseExp(t *testing.T) {
 
 	n, err := p.Parse(exp)
 	if err != nil {
-		t.Errorf("Error parsing expression \"%s\": %v", err)
+		t.Fatalf("Error parsing expression \"%s\": %v", exp, err)
 	}
 	if s := n.String(); s != out {
-		t.Errorf("Parsed expression \"%s\" to %s but expected %s", exp, s, out)
+		t.Fatalf("Parsed expression \"%s\" to %s but expected %s", exp, s, out)
 	}
 }
 
 func TestParseEmpty(t *testing.T) {
 	_, err := p.Parse("")
 	if err == nil {
-		t.Errorf("Expected error for empty expression")
+		t.Fatalf("Expected error for empty expression")
 	}
 }

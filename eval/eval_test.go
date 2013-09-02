@@ -39,7 +39,7 @@ func TestEvaluateNumber(t *testing.T) {
 func TestEvaluateCalculation(t *testing.T) {
 	n0 := ast.NodeNumber(2)
 	n1 := ast.NodeNumber(21)
-	n := ast.NodeBinaryOp{ast.OpBinMult, &n0, &n1}
+	n := ast.NodeBinaryOp{op: ast.OpBinMult, Lft: &n0, Rgt: &n1}
 
 	c := NewContext()
 
@@ -52,7 +52,7 @@ func TestEvaluateCalculation(t *testing.T) {
 		t.Fatalf("Expected \"2*21\" == 42, got %v", out)
 	}
 
-	n = ast.NodeBinaryOp{ast.OpBinExp, &n0, &n1}
+	n = ast.NodeBinaryOp{Op: ast.OpBinExp, Lft: &n0, Rgt: &n1}
 
 	out, err = Evaluate(&n, c)
 	if err != nil {
@@ -67,9 +67,9 @@ func TestEvaluateCalculation(t *testing.T) {
 func TestEvaluateBoolean(t *testing.T) {
 	n0 := ast.NodeNumber(4)
 	n1 := ast.NodeNumber(16)
-	n2 := ast.NodeBinaryOp{ast.OpBinMult, &n0, &n0}
-	nt := ast.NodeBinaryOp{ast.OpEquals, &n2, &n1}
-	nf := ast.NodeBinaryOp{ast.OpEquals, &n0, &n1}
+	n2 := ast.NodeBinaryOp{Op: ast.OpBinMult, Lft: &n0, Rgt: &n0}
+	nt := ast.NodeBinaryOp{Op: ast.OpEquals, Lft: &n2, Rgt: &n1}
+	nf := ast.NodeBinaryOp{Op: ast.OpEquals, Lft: &n0, Rgt: &n1}
 
 	c := NewContext()
 
@@ -95,7 +95,7 @@ func TestEvaluateBoolean(t *testing.T) {
 
 func TestEvaluateUnaryOp(t *testing.T) {
 	n0 := ast.NodeNumber(42)
-	n := ast.NodeBinaryOp{ast.OpUnaMinus, &n0, nil}
+	n := ast.NodeBinaryOp{Op: ast.OpUnaMinus, Lft: &n0, Rgt: nil}
 
 	c := NewContext()
 

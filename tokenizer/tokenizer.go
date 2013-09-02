@@ -122,4 +122,5 @@ func readWhile(reader io.ByteScanner, f func(b byte) bool, reset bool) string {
 		}
 		s += string(b)
 	}
+	return s
 }
