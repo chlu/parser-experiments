@@ -99,10 +99,8 @@ func Evaluate(n ast.Node, c *Context) (interface{}, error) {
 				return nil, fmt.Errorf("Unary minus is only supported on numbers, got %v", v1)
 			}
 			return -i1, nil
-		default:
-			return nil, fmt.Errorf("Cannot evaluate operation %v", i.Op)
 		}
-	default:
-		return nil, fmt.Errorf("Cannot evaluate node %v", n)
+		return nil, fmt.Errorf("Cannot evaluate operation %v", i.Op)
 	}
+	return nil, fmt.Errorf("Cannot evaluate node %v", n)
 }

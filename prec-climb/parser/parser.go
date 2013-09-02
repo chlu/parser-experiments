@@ -127,7 +127,8 @@ func (p *Parser) parse_P(lvl int) (ast.Node, error) {
 // ----
 
 func (p *Parser) expect(tok tokenizer.Token) error {
-	if ntok := p.tz.Next(); ntok == tok {
+	ntok := p.tz.Next()
+	if ntok == tok {
 		p.tz.Consume()
 		return nil
 	}
