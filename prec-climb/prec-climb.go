@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/chlu/parser-experiments/eval"
 	"github.com/chlu/parser-experiments/prec-climb/parser"
 )
 
@@ -20,12 +21,20 @@ func main() {
 	exp := args[1]
 
 	p := parser.NewParser()
-	p.Debug = true
+	// p.Debug = true
 
 	n, err := p.Parse(exp)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error parsing expression: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println(exp, ":", n)
+
+	c := eval.NewContext()
+	v, err := eval.Evaluate(n, c)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error evaluating expression: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(exp, ":", v)
 }
