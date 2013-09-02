@@ -39,7 +39,7 @@ func TestEvaluateNumber(t *testing.T) {
 func TestEvaluateCalculation(t *testing.T) {
 	n0 := ast.NodeNumber(2)
 	n1 := ast.NodeNumber(21)
-	n := ast.NodeBinaryOp{op: ast.OpBinMult, Lft: &n0, Rgt: &n1}
+	n := ast.NodeBinaryOp{Op: ast.OpBinMult, Lft: &n0, Rgt: &n1}
 
 	c := NewContext()
 
