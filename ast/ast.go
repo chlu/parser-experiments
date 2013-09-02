@@ -47,9 +47,8 @@ func (n *NodeNumber) String() string {
 func (n *NodeBinaryOp) String() string {
 	if n.Rgt != nil {
 		return fmt.Sprintf("%v(%v,%v)", n.Op.String(), n.Lft.String(), n.Rgt.String())
-	} else {
-		return fmt.Sprintf("%v(%v)", n.Op.String(), n.Lft.String())
 	}
+	return fmt.Sprintf("%v(%v)", n.Op.String(), n.Lft.String())
 }
 
 type Operator uint8
@@ -80,9 +79,8 @@ func ToBinaryOp(tok tokenizer.Token) Operator {
 		return OpBinExp
 	case "=":
 		return OpEquals
-	default:
-		panic(fmt.Sprintf("Unknown binary op token %s", tok))
 	}
+	panic(fmt.Sprintf("Unknown binary op token %s", tok))
 }
 
 func IsUnary(tok tokenizer.Token) bool {
@@ -93,9 +91,8 @@ func ToUnaryOp(tok tokenizer.Token) Operator {
 	switch tok.String {
 	case "-":
 		return OpUnaMinus
-	default:
-		panic(fmt.Sprintf("Unknown binary op token %s", tok))
 	}
+	panic(fmt.Sprintf("Unknown binary op token %s", tok))
 }
 
 func (op Operator) String() string {
@@ -141,16 +138,14 @@ func (op Operator) Prec() int {
 		return 5
 	case OpBinExp:
 		return 6
-	default:
-		panic(fmt.Sprintf("Undefined prec for operator %s", op.String()))
 	}
+	panic(fmt.Sprintf("Undefined prec for operator %s", op.String()))
 }
 
 func (op Operator) Associativity() Associativity {
 	switch op {
 	case OpBinExp:
 		return AssocRight
-	default:
-		return AssocLeft
 	}
+	return AssocLeft
 }
